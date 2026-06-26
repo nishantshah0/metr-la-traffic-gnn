@@ -412,8 +412,15 @@ def plot_predictions(preds, trues, scaler, sensor=0, horizon_step=5,
     pred = (preds[:max_points, sensor, horizon_step].numpy() * std + mean).astype(float)
     true = (trues[:max_points, sensor, horizon_step].numpy() * std + mean).astype(float)
     outage = true < 5.0            # sensor dropout (stored as ~0 mph), not real traffic
+    # An outage also poisons the model's INPUT window for the next NUM_TIMESTEPS_IN
+    # steps, so it briefly forecasts garbage right after the gap. Hide the actual
+    # only at the real dropout, but blank the PREDICTION across that whole
+    # contaminated window so no fake dip is drawn.
+    pred_bad = outage.copy()
+    for i in np.flatnonzero(outage):
+        pred_bad[i:i + NUM_TIMESTEPS_IN] = True
     true[outage] = np.nan
-    pred[outage] = np.nan
+    pred[pred_bad] = np.nan
     minutes_ahead = (horizon_step + 1) * 5
 
     plt.figure(figsize=(12, 4))

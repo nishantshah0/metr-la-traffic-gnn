@@ -1,0 +1,10 @@
+# Python virtual environment (large, regenerable)
+.venv/
+__pycache__/
+*.pyc
+
+# Downloaded dataset (auto-downloads on run; ~13 MB)
+data/
+
+# Local run logs
+*.log

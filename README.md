@@ -116,6 +116,8 @@ actual line are **sensor outages** (METR-LA stores missing readings as 0), not r
 
 ## How it works (for a non-expert)
 
+![A3T-GCN architecture diagram](docs/architecture.png)
+
 The model is an **A3T-GCN**, which stacks three ideas:
 
 - **Graph Convolution (GCN) — the *space* part.** For each sensor, it blends in its road-neighbours'

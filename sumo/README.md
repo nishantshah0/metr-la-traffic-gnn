@@ -49,6 +49,18 @@ python plot_results.py     # 6. (optional) write result.png
 
 Runs fully headless on CPU (no GPU needed) in a couple of minutes.
 
+### Watch it live 👀
+
+To actually *see* the cars and the traffic lights, add `--gui` (opens SUMO's GUI window):
+
+```bash
+python run_adaptive.py --gui   # watch the adaptive controller manage the lights
+python run_static.py  --gui    # watch the dumb fixed-time baseline, for comparison
+```
+
+The window auto-plays at ~150 ms/step. Use the GUI's speed slider to fast-forward, click a junction
+to inspect its phases, or just watch the queues build and clear. Close the window when you're done.
+
 ## Files
 
 | file | role |

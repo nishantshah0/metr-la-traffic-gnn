@@ -51,10 +51,13 @@ def green_phase_lanes(tlid):
     return out
 
 
-def run():
-    sumoBinary = sumolib.checkBinary("sumo")
+def run(gui=False):
+    # gui=True opens the SUMO window so you can WATCH the lights adapt (slower, for demos);
+    # gui=False is the fast headless run used for the measured comparison.
+    binary = sumolib.checkBinary("sumo-gui" if gui else "sumo")
+    gui_opts = ["--start", "--delay", "150"] if gui else []   # auto-play; 150 ms/step = watchable
     traci.start([
-        sumoBinary,
+        binary,
         "-n", os.path.join(HERE, "grid.net.xml"),
         "-r", os.path.join(HERE, "grid.rou.xml"),
         "--seed", "42",
@@ -63,6 +66,7 @@ def run():
         "--tripinfo-output", os.path.join(HERE, "tripinfo_adaptive.xml"),
         "--tripinfo-output.write-unfinished", "true",
         "--no-step-log", "true",
+        *gui_opts,
     ])
 
     tlids = list(traci.trafficlight.getIDList())
@@ -105,5 +109,5 @@ def run():
 
 
 if __name__ == "__main__":
-    run()
+    run(gui="--gui" in sys.argv)     # `python run_adaptive.py --gui` to watch it live
     print("done -> tripinfo_adaptive.xml")

@@ -5,6 +5,7 @@ Plain headless SUMO. Writes per-vehicle stats to tripinfo_static.xml. We keep un
 vehicles in the output so a controller that strands cars can't look good by hiding them.
 """
 import os
+import sys
 import subprocess
 import sumolib
 
@@ -12,7 +13,8 @@ SUMO_HOME = os.environ.get("SUMO_HOME") or os.path.dirname(os.path.dirname(sumol
 os.environ["SUMO_HOME"] = SUMO_HOME
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-sumoBinary = sumolib.checkBinary("sumo")   # headless console binary (not sumo-gui)
+GUI = "--gui" in sys.argv                  # `python run_static.py --gui` to watch the fixed-time baseline
+sumoBinary = sumolib.checkBinary("sumo-gui" if GUI else "sumo")
 cmd = [
     sumoBinary,
     "-n", os.path.join(HERE, "grid.net.xml"),
@@ -23,7 +25,7 @@ cmd = [
     "--tripinfo-output", os.path.join(HERE, "tripinfo_static.xml"),
     "--tripinfo-output.write-unfinished", "true",
     "--no-step-log", "true",
-]
+] + (["--start", "--delay", "150"] if GUI else [])
 print("baseline (fixed-time):", " ".join(cmd))
 subprocess.run(cmd, check=True)
 print("done -> tripinfo_static.xml")

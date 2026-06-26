@@ -86,13 +86,13 @@ values are in **normalized units** (lower is better).
 
 ```
 Persistence baseline : MSE 0.4105 | MAE 5.45 mph | RMSE 12.98 mph
-A3T-GCN model        : MSE 0.3741 | MAE 6.25 mph | RMSE 12.39 mph
-Improvement over baseline (MSE): +8.9%   ->  [PASS]
+A3T-GCN model        : MSE 0.3791 | MAE 5.91 mph | RMSE 12.48 mph
+Improvement over baseline (MSE): +7.6%   ->  [PASS]
 ```
 
 Measured on the held-out latest 20% of time (6,850 windows); full 30-epoch run on an RTX 5070 Ti.
-The GNN beats persistence on **MSE (+8.9%)** and **RMSE (12.39 vs 12.98 mph)** — the squared-error
-metrics — while its **MAE is slightly higher (6.25 vs 5.45 mph)**. That contrast is the insightful
+The GNN beats persistence on **MSE (+7.6%)** and **RMSE (12.48 vs 12.98 mph)** — the squared-error
+metrics — while its **MAE is slightly higher (5.91 vs 5.45 mph)**. That contrast is the insightful
 part: persistence is razor-accurate *on average* (traffic is usually stable, so "next ≈ now" is spot
 on → low MAE), but it gets clobbered on sudden congestion, where large squared errors dominate. The
 GNN trades a sliver of average accuracy to better anticipate those big swings → lower RMSE/MSE — and
@@ -107,9 +107,8 @@ single-layer A3T-GCN; heavier models (DCRNN, Graph WaveNet) widen the gap.
 ### Prediction plot
 
 `prediction.png` — predicted vs. actual speed for sensor #0 over a 24-hour stretch of the test set
-(the **+30-min-ahead** forecast; the model predicts up to +60 min). Sensor outages — METR-LA records
-missing/faulty readings as 0 mph — are **masked out as gaps** rather than drawn as fake cliffs to
-zero, so the plot reflects real traffic only.
+(the **+60-min-ahead** forecast — the hardest horizon). Note: the sharp drops to ~0 mph in the
+actual line are **sensor outages** (METR-LA stores missing readings as 0), not real gridlock.
 
 ![predicted vs actual speed](prediction.png)
 

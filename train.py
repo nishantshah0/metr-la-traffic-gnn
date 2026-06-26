@@ -394,33 +394,21 @@ def recover_speed_scaler(loader):
     return 0.0, 1.0
 
 
-def plot_predictions(preds, trues, scaler, sensor=0, horizon_step=5,
+def plot_predictions(preds, trues, scaler, sensor=0, horizon_step=NUM_TIMESTEPS_OUT - 1,
                      max_points=288, out_path="prediction.png"):
     """
     Plot predicted vs actual speed for ONE sensor over time, and save a PNG.
 
     preds/trues : [M, 207, 12] chronological. We pick one sensor and one horizon step
-    (default = index 5 -> the +30-min forecast, which tracks tightly; the model predicts
-    up to +60 min). We follow it across the first `max_points` test windows
-    (288 windows = 24 h of 5-min data — one daily cycle).
+    (default = the +60-min-ahead forecast, the hardest horizon). We follow it across the
+    first `max_points` test windows (288 windows = 24 h of 5-min data — one daily cycle).
 
-    METR-LA records missing/faulty sensor readings as 0 mph, so we MASK near-zero
-    'actual' points (outages) to NaN — matplotlib then draws clean gaps instead of fake
-    cliffs plunging to zero.
+    NOTE: the sharp drops to ~0 mph in the actual line are sensor OUTAGES (METR-LA
+    stores missing readings as 0), not real gridlock — shown here as-is.
     """
     mean, std = scaler
-    pred = (preds[:max_points, sensor, horizon_step].numpy() * std + mean).astype(float)
-    true = (trues[:max_points, sensor, horizon_step].numpy() * std + mean).astype(float)
-    outage = true < 5.0            # sensor dropout (stored as ~0 mph), not real traffic
-    # An outage also poisons the model's INPUT window for the next NUM_TIMESTEPS_IN
-    # steps, so it briefly forecasts garbage right after the gap. Hide the actual
-    # only at the real dropout, but blank the PREDICTION across that whole
-    # contaminated window so no fake dip is drawn.
-    pred_bad = outage.copy()
-    for i in np.flatnonzero(outage):
-        pred_bad[i:i + NUM_TIMESTEPS_IN] = True
-    true[outage] = np.nan
-    pred[pred_bad] = np.nan
+    pred = preds[:max_points, sensor, horizon_step].numpy() * std + mean
+    true = trues[:max_points, sensor, horizon_step].numpy() * std + mean
     minutes_ahead = (horizon_step + 1) * 5
 
     plt.figure(figsize=(12, 4))

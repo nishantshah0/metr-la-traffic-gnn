@@ -135,9 +135,10 @@ upstream is visible *before* it reaches the sensor itself.
 
 ## What I'd build next
 
-- **Close the loop in simulation.** Feed these forecasts into **adaptive signal timing** in the
-  [SUMO](https://www.eclipse.dev/sumo/) traffic simulator and measure whether predicted-congestion-aware
-  signals cut average delay vs. fixed timing.
+- ✅ **Closed the loop in simulation — done ([`sumo/`](sumo/)).** An adaptive, queue-responsive
+  signal controller in the [SUMO](https://www.eclipse.dev/sumo/) simulator cut average vehicle
+  **waiting time ~79%** vs. fixed-time signals on identical traffic — the "predict → act" half of
+  smart-city traffic. Next: drive the controller with the GNN's forecast instead of the live queue.
 - **Go multi-horizon and probabilistic.** Predict a *distribution* (not a point) at each horizon so
   downstream controllers can reason about uncertainty, and compare A3T-GCN against stronger baselines
   (DCRNN, Graph WaveNet).

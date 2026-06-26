@@ -141,6 +141,10 @@ under two signal controllers on **identical traffic** — a fixed-time baseline 
 queue-responsive controller (green goes to the busiest approach). On the same 2,400 vehicles, the
 adaptive controller cut average vehicle **waiting time ~79%** (time loss −55%, trip duration −27%):
 
+![SUMO traffic simulation](sumo/demo.gif)
+
+*Adaptive signal control on the 3×3 grid — green = moving, red = stopped at a red light.*
+
 ![SUMO adaptive vs fixed-time](sumo/result.png)
 
 **Watch it live** (opens the SUMO GUI):

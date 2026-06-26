@@ -9,6 +9,10 @@ the difference:
 - **Adaptive** — a TraCI controller that watches the live queue at each intersection and gives green
   to the busiest approach (longest-queue-first), with min/max green guard-rails.
 
+![SUMO traffic simulation](demo.gif)
+
+*Adaptive signal control running on the 3×3 grid — green = moving, red = stopped.*
+
 ## Result
 
 Same network, same 2,400 vehicles, same seed — only the controller differs:

@@ -15,3 +15,4 @@ sumo/grid.rou.xml
 sumo/grid.trips.xml
 sumo/tripinfo_*.xml
 sumo/stats_*.xml
+sumo/_frames/

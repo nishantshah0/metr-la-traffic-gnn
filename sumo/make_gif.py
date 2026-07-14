@@ -1,7 +1,7 @@
 """
 Render a clean top-down GIF of the adaptive controller running -> demo.gif.
 
-Fully headless and reliable: runs the sim, and each frame draws the road network (grey
+Fully headless: runs the sim, and each frame draws the road network (grey
 lines) plus every vehicle as a dot (red = stopped at a light, green = moving) with
 matplotlib. No SUMO GUI needed. Run build_net.py + build_routes.py first.
 """

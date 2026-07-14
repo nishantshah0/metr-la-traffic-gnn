@@ -1,13 +1,13 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # Dependencies for the METR-LA traffic-forecasting GNN.
 #
-# IMPORTANT (Colab): Google Colab ALREADY ships a working PyTorch build that
-# matches its GPU/CUDA driver. Do NOT `pip install torch` on Colab — you'll risk
-# breaking the CUDA match. On Colab you only need the two PyG packages:
+# Colab note: Colab already ships a PyTorch build matched to its GPU/CUDA driver,
+# and reinstalling torch can break that match. On Colab only the two PyG packages
+# are needed:
 #
 #     !pip install -q torch_geometric torch-geometric-temporal
 #
-# These pins are for a LOCAL machine (your own laptop) where you control torch.
+# These pins are for a local install, where torch isn't preinstalled.
 # Versions are left loose on purpose: the PyG-Temporal loader internals shift
 # between releases, so the safest recipe is "latest compatible". If a local
 # install ever errors about a missing compiled op (torch_scatter / torch_sparse),

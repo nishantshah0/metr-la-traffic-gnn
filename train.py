@@ -5,7 +5,7 @@
 
 WHAT THIS PROJECT DOES
 ----------------------
-We predict near-future highway traffic SPEED across 207 real sensors in Los
+Predicts near-future highway traffic SPEED across 207 real sensors in Los
 Angeles, using both:
   (a) the recent HISTORY at each sensor (a time-series signal), and
   (b) the ROAD NETWORK that connects the sensors (a graph).
@@ -20,8 +20,8 @@ onto the segments feeding into it a few minutes later. A plain LSTM that looks
 at one sensor in isolation can't "see" its upstream neighbour slowing down.
 A GNN can, because the graph literally encodes which sensors are road-adjacent.
 
-HOW THE FILE IS ORGANIZED (built in stages; each stage is a clearly-marked block)
----------------------------------------------------------------------------------
+HOW THE FILE IS ORGANIZED
+-------------------------
   Stage 1  load + chronologically split the data, inspect one sample
   Stage 2  persistence baseline ("future speed = last observed speed")
   Stage 3  the A3T-GCN model (GCN + GRU + attention)
@@ -43,32 +43,31 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import matplotlib
-matplotlib.use("Agg")            # headless backend: lets us save a PNG without a screen
+matplotlib.use("Agg")            # headless backend so savefig works without a display
 import matplotlib.pyplot as plt
 
 # The METR-LA loader auto-downloads the dataset on first use (needs internet).
 from torch_geometric_temporal.dataset import METRLADatasetLoader
-# temporal_signal_split gives us a CHRONOLOGICAL train/test split (no shuffling).
+# temporal_signal_split does a CHRONOLOGICAL train/test split (no shuffling).
 from torch_geometric_temporal.signal import temporal_signal_split
-# A3TGCN2 is the BATCHED version of the A3T-GCN cell (lets us train fast on a GPU).
+# A3TGCN2 is the BATCHED version of the A3T-GCN cell — needed for mini-batch GPU training.
 from torch_geometric_temporal.nn.recurrent import A3TGCN2
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Config — the few knobs that matter. Kept at the top so they're easy to find.
+# Config
 # ──────────────────────────────────────────────────────────────────────────────
-# METR-LA records one reading every 5 minutes. So 12 steps = 12 * 5 = 60 minutes.
-NUM_TIMESTEPS_IN = 12    # how many PAST 5-min steps the model sees   (last 60 min)
-NUM_TIMESTEPS_OUT = 12   # how many FUTURE 5-min steps we predict      (next 60 min)
+# METR-LA records one reading every 5 minutes, so 12 steps = 12 * 5 = 60 minutes.
+NUM_TIMESTEPS_IN = 12    # PAST 5-min steps the model sees      (last 60 min)
+NUM_TIMESTEPS_OUT = 12   # FUTURE 5-min steps to predict        (next 60 min)
 TRAIN_RATIO = 0.8        # first 80% of time -> train, last 20% -> test
 
-BATCH_SIZE = 32          # how many windows we process at once (a "mini-batch")
+BATCH_SIZE = 32          # windows per mini-batch
 HIDDEN = 32              # size of the hidden vector A3T-GCN produces per sensor
-EPOCHS = 30              # how many full passes over the training data
-LR = 1e-2                # Adam learning rate (0.01 is the value the PyG tutorial uses)
+EPOCHS = 30              # full passes over the training data
+LR = 1e-2                # Adam learning rate (0.01, same as the PyG tutorial)
 
-# Device: the project must run whether or not a GPU is present.
-# On Colab "Runtime > Change runtime type > GPU" gives you CUDA; otherwise CPU.
+# Use CUDA when available (e.g. a Colab GPU runtime), otherwise fall back to CPU.
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
@@ -95,23 +94,18 @@ def load_data():
         num_timesteps_out=NUM_TIMESTEPS_OUT,
     )
 
-    # ── THE SPLIT, AND WHY ORDER MATTERS ──────────────────────────────────────
     # temporal_signal_split takes the FIRST `train_ratio` fraction of the timeline
-    # as training data and the REMAINING tail as test data. It returns (train, test)
-    # IN THAT ORDER and does NOT shuffle.
-    #
-    # Why we must NOT shuffle a time series before splitting:
-    #   Shuffling mixes future snapshots into the training set. The model would
-    #   effectively "study tomorrow's traffic" before being tested on it — that's
-    #   data leakage, and it produces fake-good scores that collapse in the real
-    #   world. A chronological split mirrors deployment: train on the past, predict
-    #   the genuinely-unseen future.
+    # as training data and the REMAINING tail as test data — no shuffling.
+    # Shuffling a time series before splitting would mix future snapshots into the
+    # training set: data leakage, and fake-good scores that collapse in the real
+    # world. A chronological split mirrors deployment: train on the past, predict
+    # the genuinely-unseen future.
     train_dataset, test_dataset = temporal_signal_split(dataset, train_ratio=TRAIN_RATIO)
     return loader, dataset, train_dataset, test_dataset
 
 
 def inspect_one_sample(dataset, train_dataset, test_dataset):
-    """Print the shape of ONE sample and explain, axis by axis, what each number means."""
+    """Print one sample's shapes and what each axis means."""
     snapshot = next(iter(dataset))   # a PyG `Data` bundling x, y, and the graph
 
     print("=" * 70)
@@ -183,12 +177,10 @@ def persistence_mse(X, Y):
     The "persistence" (a.k.a. naive / last-value) forecast: predict that the future
     speed equals the LAST speed we observed, held flat across the whole horizon.
 
-    Why a baseline at all?
-      It sets the bar. Traffic is sticky over 5–60 min, so "it'll be about what it
-      is now" is already a decent guess. If our fancy GNN can't beat this trivial
-      rule, the GNN has learned nothing useful — all that machinery would be
-      decoration. Beating it is the minimum evidence that the model found real
-      structure (here: spatial spillover between sensors).
+    Traffic is sticky over 5–60 min, so "it'll be about what it is now" is already
+    a decent guess. If the GNN can't beat this trivial rule it hasn't learned
+    anything useful; beating it is the minimum evidence that the model found real
+    structure (here: spatial spillover between sensors).
 
     Shapes:
       X : [N, 207, 2, 12]   ->  X[:, :, 0, -1:] = feature 0 (SPEED), last step = [N, 207, 1]
@@ -207,7 +199,7 @@ class A3TGCNForecaster(torch.nn.Module):
     """
     A3T-GCN = Attention Temporal Graph Convolutional Network.
 
-    Three ingredients, in intuitive terms (no heavy math):
+    Three parts:
 
       • GCN  (the "GC" — graph convolution): the SPACE part. For each sensor it
         mixes in its road-neighbours' readings, weighted by edge_weight. This is
@@ -226,7 +218,7 @@ class A3TGCNForecaster(torch.nn.Module):
       An LSTM sees each sensor as an isolated time-series. The GCN lets a sensor's
       forecast use its road-connected neighbours' states, so congestion that is
       about to ARRIVE from upstream is visible BEFORE it shows up locally. The
-      graph encodes that spatial cause-and-effect; the LSTM simply can't represent it.
+      graph encodes that spatial cause-and-effect; the LSTM can't represent it.
 
     Shapes through forward():
       x           : [B, 207, 2, 12]   (batch of B windows; B = BATCH_SIZE)
@@ -275,11 +267,10 @@ def make_loader(X, Y, shuffle):
     drop_last=True: A3TGCN2 is built for a FIXED batch size, so we drop the final
     partial batch (a few windows out of thousands — negligible).
 
-    shuffle=True is used for TRAINING only. This is NOT the leakage we warned about
-    in Stage 1: the chronological split already happened, so train and test stay
-    time-separated. Shuffling the ORDER of training windows within the train set is
-    just standard stochastic-gradient-descent practice (it stops the model from
-    memorising the day-by-day order). We never shuffle test.
+    shuffle=True is used for TRAINING only — no leakage, since the chronological
+    split already happened and train/test stay time-separated. Shuffling the ORDER
+    of training windows within the train set is standard SGD practice (it stops
+    the model memorising the day-by-day order). Test is never shuffled.
     """
     ds = torch.utils.data.TensorDataset(X, Y)
     return torch.utils.data.DataLoader(ds, batch_size=BATCH_SIZE,
@@ -304,9 +295,9 @@ def train(model, train_loader, edge_index, edge_weight):
             y_hat = model(x_batch, edge_index, edge_weight)  # [B, 207, 12]
             loss = loss_fn(y_hat, y_batch)
 
-            optimizer.zero_grad()   # clear gradients from the previous step
-            loss.backward()         # backprop: compute gradients
-            optimizer.step()        # nudge the weights downhill
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
 
             running += loss.item()
             n_batches += 1
@@ -344,10 +335,9 @@ def report_results(preds, trues, persist, scaler):
     persist_mse = torch.mean((persist - trues) ** 2).item()
     improvement = (persist_mse - model_mse) / persist_mse * 100.0
 
-    # Convert error to real mph. In the difference (pred - true) the z-score MEAN
-    # cancels, so we only multiply by std to get mph — far more intuitive than a
-    # unitless MSE. (If the mph scale couldn't be recovered, std=1 and these read
-    # as normalized units.)
+    # Convert error to real mph: in the difference (pred - true) the z-score MEAN
+    # cancels, so multiplying by std gives mph. (If the mph scale couldn't be
+    # recovered, std=1 and these read as normalized units.)
     model_mae = torch.mean(torch.abs(preds - trues)).item() * std
     persist_mae = torch.mean(torch.abs(persist - trues)).item() * std
     model_rmse = (model_mse ** 0.5) * std
@@ -378,8 +368,9 @@ def recover_speed_scaler(loader):
     invert that with: mph = z * std + mean. We recompute (mean, std) the same way the
     loader does, straight from the raw node-values file it downloaded.
 
-    Robust: we search raw_data_dir for the (timesteps, 207, 2) array and pick feature 0
-    (speed). If the file can't be found, we fall back to (0, 1) and the plot is simply
+    Rather than hard-code a filename (the loader's cache layout has shifted between
+    versions), search raw_data_dir for the (timesteps, 207, 2) array and pick
+    feature 0 (speed). If no file matches, fall back to (0, 1) and the plot stays
     in normalized units (still correct, just not mph).
     """
     try:

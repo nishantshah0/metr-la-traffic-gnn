@@ -62,8 +62,8 @@ python run_adaptive.py --gui   # watch the adaptive controller manage the lights
 python run_static.py  --gui    # watch the dumb fixed-time baseline, for comparison
 ```
 
-The window auto-plays at ~150 ms/step. Use the GUI's speed slider to fast-forward, click a junction
-to inspect its phases, or just watch the queues build and clear. Close the window when you're done.
+The window auto-plays at ~150 ms/step. The GUI's speed slider fast-forwards, and clicking a junction
+shows its phases.
 
 ## Files
 

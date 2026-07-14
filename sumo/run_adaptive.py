@@ -52,7 +52,7 @@ def green_phase_lanes(tlid):
 
 
 def run(gui=False):
-    # gui=True opens the SUMO window so you can WATCH the lights adapt (slower, for demos);
+    # gui=True opens the SUMO window (slower; for demos);
     # gui=False is the fast headless run used for the measured comparison.
     binary = sumolib.checkBinary("sumo-gui" if gui else "sumo")
     gui_opts = ["--start", "--delay", "150"] if gui else []   # auto-play; 150 ms/step = watchable

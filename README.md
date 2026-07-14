@@ -23,8 +23,8 @@ adaptive signal timing, ramp metering, dynamic routing, and congestion pricing a
 ## The dataset
 
 **METR-LA** — loop-detector readings from 207 sensors on LA highways, one reading every 5 minutes
-over 4 months (34,272 time steps). It's the standard benchmark for traffic forecasting. We use the
-built-in `METRLADatasetLoader` from PyTorch Geometric Temporal, which **auto-downloads** the data.
+over 4 months (34,272 time steps). It's the standard benchmark for traffic forecasting. The
+built-in `METRLADatasetLoader` from PyTorch Geometric Temporal **auto-downloads** the data.
 
 Each training example ("snapshot") is one sliding window:
 
@@ -35,8 +35,8 @@ Each training example ("snapshot") is one sliding window:
 | `edge_index` | `[2, 1722]` | road links: column *k* = `[from_sensor, to_sensor]` |
 | `edge_attr` | `[1722]` | one proximity weight per link (closer ⇒ larger) |
 
-Features are **z-score normalized**, so values look like `-0.7`, not `65 mph`. We convert back to mph
-only for the final plot.
+Features are **z-score normalized**, so values look like `-0.7`, not `65 mph`. The mph scale is
+recovered only for the final metrics and plot.
 
 ---
 
